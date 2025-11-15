@@ -12,13 +12,8 @@ impl Plugin for PlayerPlugin {
     }
 }
 
-#[derive(Component)]
-struct Player;
-
-#[derive(Component)]
-struct Speed(f32);
-
-fn spawn_player(
+// Make spawn_player public for system ordering
+pub fn spawn_player(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
@@ -32,18 +27,24 @@ fn spawn_player(
     ));
 }
 
+#[derive(Component)]
+pub struct Player;
+
+#[derive(Component)]
+struct Speed(f32);
+
 fn player_movement(
     time: Res<Time>,
     keys: Res<ButtonInput<KeyCode>>,
     mut player_q: Query<(&mut Transform, &Speed), With<Player>>,
     cam_q: Query<&Transform, (With<Camera3d>, Without<Player>)>,
 ) {
-    for (mut player_transform, player_speed) in player_q.iter_mut() {
-        let cam = match cam_q.single() {
-            Ok(c) => c,
-            Err(e) => panic!("Error retrieving camera: {}", e),
-        };
+    // Early return if no camera exists
+    let Ok(cam) = cam_q.single() else {
+        return;
+    };
 
+    for (mut player_transform, player_speed) in player_q.iter_mut() {
         let mut direction = Vec3::ZERO;
 
         // forward
